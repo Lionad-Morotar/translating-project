@@ -1,0 +1,11 @@
+{
+  "name": "project-translator",
+  "version": "1.0.0",
+  "description": "批量翻译项目文档和代码文件",
+  "scripts": {
+    "scan": "node scripts/scan_files.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
