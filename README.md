@@ -28,7 +28,6 @@ npx skill lionad-morotar/project-translator
 
 ![workflow](./public/workflow.png)
 
-
 原项目：todo
 新项目：todo
 
