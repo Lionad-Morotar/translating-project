@@ -20,14 +20,14 @@ const {
 /**
  * 递归扫描项目，返回所有支持文件及其翻译状态
  */
-function scanProject(projectPath, config) {
+async function scanProject(projectPath, config) {
   projectPath = path.resolve(projectPath);
   const files = [];
 
   const ignoreGitignore = config?.fileFilters?.ignoreGitignore || false;
   const gitignorePatterns = ignoreGitignore ? readGitignore(projectPath) : [];
 
-  function scanDir(dir) {
+  async function scanDir(dir) {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
 
     for (const entry of entries) {
@@ -35,7 +35,7 @@ function scanProject(projectPath, config) {
 
       if (entry.isDirectory()) {
         if (shouldExcludeDir(entry.name, config)) continue;
-        scanDir(fullPath);
+        await scanDir(fullPath);
       } else if (entry.isFile()) {
         if (shouldExcludeFile(entry.name, config)) continue;
 
@@ -45,18 +45,18 @@ function scanProject(projectPath, config) {
         }
 
         if (isSupportedFile(entry.name, config)) {
-          const translated = isFileTranslated(fullPath, config);
+          const translated = await isFileTranslated(fullPath, config);
           files.push({ path: fullPath, translated });
         }
       }
     }
   }
 
-  scanDir(projectPath);
+  await scanDir(projectPath);
   return files.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-function runCli() {
+async function runCli() {
   const args = process.argv.slice(2);
   const projectPathIndex = args.indexOf('--project-path');
 
@@ -81,12 +81,15 @@ function runCli() {
     process.exit(1);
   }
 
-  const files = scanProject(projectPath, config);
+  const files = await scanProject(projectPath, config);
   writeTodoFile(files, defaultOutputPath);
 }
 
 if (require.main === module) {
-  runCli();
+  runCli().catch(error => {
+    console.error(`错误: 扫描失败: ${error.message}`);
+    process.exit(1);
+  });
 }
 
 module.exports = {

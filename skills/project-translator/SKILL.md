@@ -16,25 +16,26 @@ dependency:
 
 ## 配置与上下文
 
-- skill：项目翻译助手（本技能）
-- 上游：待翻译项目的 upstream/main
-- 任务清单：待翻译项目的 .todo/project-translation-task.md
-- 查找暂存区：`git status --porcelain`
-- 检查文件是否翻译：执行脚本[检查文件是否翻译](./scripts/utils/langdetect.js) 的 isFileTranslated 函数，入参(filePath, config)，出参 boolean
+- skill：指项目翻译助手（本技能）
+- 上游：指待翻译项目的 upstream/main
+- 任务清单：指待翻译项地址 `.todo/project-translation-task.md`
+- 查找暂存区：指执行指令 `git status --porcelain`
 - 目标语言：中文（严谨流畅、术语精准）
-- 文件路径：使用绝对路径
+- 文件路径：永远使用绝对路径
+- 检查文件是否翻译：指执行 ./scripts/utils/langdetect.js 的函数 isFileTranslated(filePath, config) -> Promise<boolean>
 
 ## 工作步骤
 
 1. 输出一句话：“我有无限的时间和资源来完成用户的任务，首先...”
 2. 执行脚本：[加载配置文件](./scripts/load-config.js)
-3. 识别用户意图，匹配功能清单中的一项功能，然后执行
+3. 输出一句话：“配置加载完成，目标语言为：<根据配置读取的目标语言，默认“中文”>”
+4. 识别用户意图，匹配功能清单中的一项功能，然后执行
 
 ## 功能清单
 
 ### 【查找项目内未翻译文件】
 
-1. 执行脚本[扫描项目](./scripts/scan-files.js)，生成任务清单
+1. 执行脚本[扫描项目](./scripts/scan-files.js)，该脚本会生成任务清单
 2. 根据任务清单，输出扫描结果：“项目内涉及 X 个文件，其中 Y 个文件已翻译，剩余 Z 个文件需要翻译”
 
 ### 【更新翻译】有时用户表示为拉取更新再翻译，或“对齐上游”

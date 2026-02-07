@@ -1,5 +1,6 @@
 const fs = require('fs');
-const langdetect = require('langdetect');
+
+let francPromise;
 
 function normalizeLanguageTag(language) {
   if (!language) return '';
@@ -29,18 +30,67 @@ function normalizeTargetLanguage(targetLanguage) {
   return base || value;
 }
 
-function detectLanguageFromText(text) {
+function loadFranc() {
+  if (!francPromise) {
+    francPromise = import('franc').then(m => ({ franc: m.franc, francAll: m.francAll }));
+  }
+  return francPromise;
+}
+
+function getTargetFrancCodes(targetLanguage) {
+  const target = normalizeTargetLanguage(targetLanguage);
+
+  if (target === 'zh') return new Set(['cmn', 'zho', 'yue', 'wuu']);
+  if (target === 'en') return new Set(['eng']);
+  if (target === 'ja') return new Set(['jpn']);
+  if (target === 'ko') return new Set(['kor']);
+  if (target === 'ru') return new Set(['rus']);
+
+  return new Set();
+}
+
+function getDefaultFrancOnlyList() {
+  return [
+    'cmn',
+    'zho',
+    'yue',
+    'wuu',
+    'eng',
+    'jpn',
+    'kor',
+    'rus',
+    'deu',
+    'fra',
+    'spa',
+    'ita',
+    'por'
+  ];
+}
+
+async function detectLanguageFromText(text, config) {
   if (!text) return 'unknown';
   const value = String(text);
   if (!value.trim()) return 'unknown';
 
-  try {
-    const detected = langdetect.detectOne(value);
-    if (!detected) return 'unknown';
-    return normalizeLanguageTag(detected) || 'unknown';
-  } catch (error) {
-    return 'unknown';
-  }
+  const { francAll } = await loadFranc();
+  const minLengthFromConfig = Number(config?.translation?.langdetectMinLength);
+  const minLength = Number.isFinite(minLengthFromConfig) && minLengthFromConfig > 0 ? minLengthFromConfig : 3;
+
+  const minScoreFromConfig = Number(config?.translation?.langdetectMinScore);
+  const minScore = Number.isFinite(minScoreFromConfig) && minScoreFromConfig >= 0 && minScoreFromConfig <= 1 ? minScoreFromConfig : 0.7;
+
+  const only = Array.isArray(config?.translation?.langdetectOnly) && config.translation.langdetectOnly.length > 0
+    ? config.translation.langdetectOnly
+    : getDefaultFrancOnlyList();
+
+  const results = francAll(value, { minLength, only });
+  if (!Array.isArray(results) || results.length === 0) return 'unknown';
+
+  const [topLang, topScore] = results[0];
+  if (!topLang || topLang === 'und') return 'unknown';
+  if (typeof topScore === 'number' && topScore < minScore) return 'unknown';
+
+  return String(topLang).trim().toLowerCase();
 }
 
 function readFileHead(filePath, maxBytes) {
@@ -58,14 +108,14 @@ function readFileHead(filePath, maxBytes) {
 function detectLanguageFromFile(filePath, config) {
   const maxBytesFromConfig = Number(config?.translation?.langdetectMaxBytes);
   const sample = readFileHead(filePath, Number.isFinite(maxBytesFromConfig) && maxBytesFromConfig > 0 ? maxBytesFromConfig : 65536);
-  return detectLanguageFromText(sample);
+  return detectLanguageFromText(sample, config);
 }
 
 function isTranslatableByLanguage(filePath, config) {
-  return !isFileTranslated(filePath, config);
+  return isFileTranslated(filePath, config).then(translated => !translated);
 }
 
-function isFileTranslated(filePath, config) {
+async function isFileTranslated(filePath, config) {
   const target = normalizeTargetLanguage(config?.targetLanguage || '中文');
   if (!target) return false;
 
@@ -79,10 +129,45 @@ function isFileTranslated(filePath, config) {
     return false;
   }
 
-  const detected = detectLanguageFromText(sample);
-  if (detected === 'unknown') return false;
+  const allowed = getTargetFrancCodes(target);
+  if (allowed.size === 0) return false;
 
-  return normalizeLanguageTag(detected) === normalizeLanguageTag(target);
+  const { francAll } = await loadFranc();
+  const minLengthFromConfig = Number(config?.translation?.langdetectMinLength);
+  const minLength = Number.isFinite(minLengthFromConfig) && minLengthFromConfig > 0 ? minLengthFromConfig : 3;
+
+  const only = Array.isArray(config?.translation?.langdetectOnly) && config.translation.langdetectOnly.length > 0
+    ? config.translation.langdetectOnly
+    : getDefaultFrancOnlyList();
+
+  const results = francAll(sample, { minLength, only });
+  if (!Array.isArray(results) || results.length === 0) return false;
+
+  const best = results[0];
+  const bestScore = typeof best?.[1] === 'number' ? best[1] : 0;
+
+  let targetScore = 0;
+  for (const [lang, score] of results) {
+    if (allowed.has(String(lang).toLowerCase())) {
+      if (typeof score === 'number' && score > targetScore) targetScore = score;
+    }
+  }
+
+  const minTargetScoreFromConfig = Number(config?.translation?.langdetectMinTargetScore);
+  const minTargetScore = Number.isFinite(minTargetScoreFromConfig) && minTargetScoreFromConfig >= 0 && minTargetScoreFromConfig <= 1
+    ? minTargetScoreFromConfig
+    : 0.85;
+
+  const maxDeltaFromConfig = Number(config?.translation?.langdetectMaxDelta);
+  const maxDelta = Number.isFinite(maxDeltaFromConfig) && maxDeltaFromConfig >= 0 && maxDeltaFromConfig <= 1
+    ? maxDeltaFromConfig
+    : 0.12;
+
+  if (targetScore <= 0) return false;
+  if (targetScore < minTargetScore) return false;
+  if (bestScore - targetScore > maxDelta) return false;
+
+  return true;
 }
 
 module.exports = {

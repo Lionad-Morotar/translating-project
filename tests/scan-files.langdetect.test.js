@@ -30,12 +30,19 @@ describe('scan-files + langdetect', () => {
     expect(normalizeTargetLanguage('English')).toBe('en');
   });
 
-  it('detectLanguageFromText should detect zh/en', () => {
-    expect(detectLanguageFromText('这是一个测试文档内容，用于语言识别。')).toBe('zh');
-    expect(detectLanguageFromText('This is a test document content for language detection.')).toBe('en');
+  it('detectLanguageFromText should detect zh/en', async () => {
+    const zh = await detectLanguageFromText('这是一个测试文档内容，用于语言识别。', {
+      translation: { langdetectOnly: ['cmn', 'zho', 'yue', 'wuu'], langdetectMinLength: 3 }
+    });
+    const en = await detectLanguageFromText('This is a test document content for language detection.', {
+      translation: { langdetectOnly: ['eng', 'fra'], langdetectMinLength: 3 }
+    });
+
+    expect(zh).toMatch(/^(cmn|zho|yue|wuu)$/);
+    expect(en).toMatch(/^(eng|fra)$/);
   });
 
-  it('isFileTranslated should detect files already in target language', () => {
+  it('isFileTranslated should detect files already in target language', async () => {
     const chineseFile = join(TMP_DIR, 'chinese.md');
     const englishFile = join(TMP_DIR, 'english.md');
     writeFileSync(chineseFile, '这是中文内容。');
@@ -43,14 +50,15 @@ describe('scan-files + langdetect', () => {
 
     const config = {
       targetLanguage: '中文',
-      fileFilters: { ignoreGitignore: false, supportedExtensions: ['.md'], excludeFiles: [], excludeDirs: [] }
+      fileFilters: { ignoreGitignore: false, supportedExtensions: ['.md'], excludeFiles: [], excludeDirs: [] },
+      translation: { langdetectMinLength: 3 }
     };
 
-    expect(isFileTranslated(chineseFile, config)).toBe(true);
-    expect(isFileTranslated(englishFile, config)).toBe(false);
+    await expect(isFileTranslated(chineseFile, config)).resolves.toBe(true);
+    await expect(isFileTranslated(englishFile, config)).resolves.toBe(false);
   });
 
-  it('scanProject should include all supported files with translated flag', () => {
+  it('scanProject should include all supported files with translated flag', async () => {
     const docsDir = join(TMP_DIR, 'docs');
     mkdirSync(docsDir, { recursive: true });
 
@@ -63,10 +71,11 @@ describe('scan-files + langdetect', () => {
 
     const config = {
       targetLanguage: '中文',
-      fileFilters: { ignoreGitignore: false, supportedExtensions: ['.md'], excludeFiles: [], excludeDirs: [] }
+      fileFilters: { ignoreGitignore: false, supportedExtensions: ['.md'], excludeFiles: [], excludeDirs: [] },
+      translation: { langdetectMinLength: 3 }
     };
 
-    const files = scanProject(TMP_DIR, config);
+    const files = await scanProject(TMP_DIR, config);
     expect(files).toEqual([
       { path: chineseFile, translated: true },
       { path: englishFile, translated: false }
