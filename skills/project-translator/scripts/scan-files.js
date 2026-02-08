@@ -26,6 +26,10 @@ async function scanProject(projectPath, config) {
 
   const ignoreGitignore = config?.fileFilters?.ignoreGitignore || false;
   const gitignorePatterns = ignoreGitignore ? readGitignore(projectPath) : [];
+  const taskTrackingFile = config?.taskTrackingFile || '.todo/project-translation-task.md';
+  const taskTrackingFilePath = path.isAbsolute(taskTrackingFile)
+    ? path.resolve(taskTrackingFile)
+    : path.resolve(projectPath, taskTrackingFile);
 
   async function scanDir(dir) {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -37,6 +41,7 @@ async function scanProject(projectPath, config) {
         if (shouldExcludeDir(entry.name, config)) continue;
         await scanDir(fullPath);
       } else if (entry.isFile()) {
+        if (path.resolve(fullPath) === taskTrackingFilePath) continue;
         if (shouldExcludeFile(entry.name, config)) continue;
 
         // 检查 .gitignore

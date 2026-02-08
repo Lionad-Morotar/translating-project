@@ -88,16 +88,21 @@ export function helloWorld() {
   it('scanProject should include all supported files with translated flag', async () => {
     const docsDir = join(TMP_DIR, 'docs');
     mkdirSync(docsDir, { recursive: true });
+    const todoDir = join(TMP_DIR, '.todo');
+    mkdirSync(todoDir, { recursive: true });
 
     const chineseFile = join(docsDir, 'cn.md');
     const englishFile = join(docsDir, 'en.md');
     const otherExt = join(docsDir, 'note.txt');
+    const taskTrackingFile = join(todoDir, 'project-translation-task.md');
     writeFileSync(chineseFile, '这是中文内容。');
     writeFileSync(englishFile, 'This is English content that should be translated.');
     writeFileSync(otherExt, 'This file should be ignored by extension.');
+    writeFileSync(taskTrackingFile, '# Task list\n\n- [ ] docs/en.md\n');
 
     const config = {
       targetLanguage: '中文',
+      taskTrackingFile: '.todo/project-translation-task.md',
       fileFilters: { ignoreGitignore: false, supportedExtensions: ['.md'], excludeFiles: [], excludeDirs: [] },
       translation: { langdetectMinLength: 3 }
     };

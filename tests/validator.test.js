@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { validateCSV, validateTOML, validateGlossaryFile } from '../skills/project-translator/scripts/utils/validator.js';
-import { writeFileSync, unlinkSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, rmSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
 const TMP_DIR = join(process.cwd(), 'tmp');
@@ -18,7 +18,7 @@ describe('validator', () => {
         const { readdirSync } = require('fs');
         const files = readdirSync(TMP_DIR);
         files.forEach(file => {
-          unlinkSync(join(TMP_DIR, file));
+          rmSync(join(TMP_DIR, file), { recursive: true, force: true });
         });
       }
     });
@@ -143,7 +143,7 @@ pull request,translate,拉取请求,pull request 翻译为拉取请求`;
         const { readdirSync } = require('fs');
         const files = readdirSync(TMP_DIR);
         files.forEach(file => {
-          unlinkSync(join(TMP_DIR, file));
+          rmSync(join(TMP_DIR, file), { recursive: true, force: true });
         });
       }
     });
@@ -320,7 +320,7 @@ action = "translate"`;
         const { readdirSync } = require('fs');
         const files = readdirSync(TMP_DIR);
         files.forEach(file => {
-          unlinkSync(join(TMP_DIR, file));
+          rmSync(join(TMP_DIR, file), { recursive: true, force: true });
         });
       }
     });
