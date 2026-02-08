@@ -18,7 +18,7 @@ dependency:
 
 - skill：指项目翻译助手（本技能）
 - 上游：指待翻译项目的 upstream/main
-- 任务清单：指待翻译项地址 `.todo/project-translation-task.md`
+- 任务清单：`<待翻译项目根目录>/.todo/project-translation-task.md`
 - 查找暂存区：指执行指令 `git status --porcelain`
 - 目标语言：中文（严谨流畅、术语精准）
 - 文件路径：永远使用绝对路径
@@ -43,12 +43,12 @@ dependency:
 ### 【更新翻译】有时用户表示为拉取更新再翻译，或“对齐上游”
 
 - 如果用户表示更新翻译需求（即将已翻译项目和上游对齐，如拉取更新，然后再翻译项目的需求）
-- 执行[流程：冲突处理流程](./references/workflow-git-conflicts.md)
+- 执行流程[差异更新](./references/workflow-diff-update.md)
 
 ### 【翻译项目】用户没有明确需求时选这个
 
 0. 首先，确保当前处于 `translation` 分支，并且项目配置了 git remote `origin` 和 `upstream`
-1. 如果项目没有任务清单，执行脚本[生成任务清单](./scripts/scan-files.js)
+1. 如果项目没有任务清单，执行流程[生成任务清单](./references/workflow-scan.md)
 2. 查找暂存区（默认暂存区的文件已翻译）
   2.1 如果已翻译文件在任务清单中，但没有勾选，则勾选
   2.2 如果已翻译文件不在任务清单，则忽略
