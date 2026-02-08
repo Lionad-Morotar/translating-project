@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { readInnerDictionary } = require('./dict');
 
 let francPromise;
 
@@ -59,13 +60,20 @@ function getDefaultFrancOnlyList() {
     'eng',
     'jpn',
     'kor',
-    'rus',
-    'deu',
-    'fra',
-    'spa',
-    'ita',
-    'por'
+    'rus'
   ];
+}
+
+function getFrancOnlyListFromConfig(config) {
+  const defaultOnly = getDefaultFrancOnlyList();
+  const defaultOnlySet = new Set(defaultOnly);
+
+  const configOnly = Array.isArray(config?.translation?.langdetectOnly) ? config.translation.langdetectOnly : [];
+  const filtered = configOnly
+    .map(item => String(item || '').trim().toLowerCase())
+    .filter(item => defaultOnlySet.has(item));
+
+  return filtered.length > 0 ? filtered : defaultOnly;
 }
 
 function isMarkdownFile(filePath) {
@@ -73,12 +81,67 @@ function isMarkdownFile(filePath) {
   return ext === '.md' || ext === '.mdx' || ext === '.markdown';
 }
 
-function cleanMarkdownForLangdetect(markdown) {
+function stripMarkdownTables(markdown) {
+  const lines = String(markdown || '').split(/\r?\n/);
+  const output = [];
+
+  const isSeparatorLine = (line) => /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+  const looksLikeTableRow = (line) => {
+    const pipeCount = (String(line).match(/\|/g) || []).length;
+    return pipeCount >= 2;
+  };
+
+  let inTable = false;
+
+  for (const line of lines) {
+    if (isSeparatorLine(line)) {
+      if (output.length > 0 && looksLikeTableRow(output[output.length - 1])) output.pop();
+      inTable = true;
+      continue;
+    }
+
+    if (inTable) {
+      if (!line.trim()) continue;
+      if (looksLikeTableRow(line)) continue;
+      inTable = false;
+    }
+
+    output.push(line);
+  }
+
+  return output.join('\n');
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function stripDictionaryWords(text, config) {
+  const dict = readInnerDictionary({ dictPath: config?.translation?.dictPath });
+  if (!Array.isArray(dict) || dict.length === 0) return text;
+
+  const tokenChars = 'A-Za-z0-9.+-';
+  const words = dict
+    .map(w => String(w || '').trim())
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+
+  let value = String(text || '');
+  for (const word of words) {
+    const escaped = escapeRegExp(word);
+    const re = new RegExp(`(^|[^${tokenChars}])(${escaped})(?=$|[^${tokenChars}])`, 'gi');
+    value = value.replace(re, '$1');
+  }
+
+  return value;
+}
+
+function cleanMarkdownForLangdetect(markdown, config) {
   let value = String(markdown || '');
 
   value = value.replace(/^\uFEFF/, '');
   value = value.replace(/^---[\s\S]*?\n---\s*/m, '');
-  value = value.replace(/```[\s\S]*?```/g, ' ');
+  value = value.replace(/```\w+\r?\n[\s\S]*?\r?\n```/g, ' ');
   value = value.replace(/~~~[\s\S]*?~~~/g, ' ');
   value = value.replace(/\*\*[\s\S]*?\*\*/g, ' ');
   value = value.replace(/<!--[\s\S]*?-->/g, ' ');
@@ -91,8 +154,21 @@ function cleanMarkdownForLangdetect(markdown) {
   value = value.replace(/^\s*>\s+/gm, '');
   value = value.replace(/^\s*[-*+]\s+/gm, '');
   value = value.replace(/^\s*\d+\.\s+/gm, '');
+
+  // "1.2、1.1.2"
+  value = value.replace(/\d+(?:\.\d)+\.?/g, ' ');
+
+  // url
   value = value.replace(/https?:\/\/\S+/g, ' ');
-  value = value.replace(/-|\|/g, '');
+
+  // table
+  value = stripMarkdownTables(value);
+  value = stripDictionaryWords(value, config);
+
+  // "[] task"
+  value = value.replace(/\[[xX\s]\]/g, '');
+
+  // collapse multiple space
   value = value.replace(/\s+/g, ' ').trim();
 
   return value;
@@ -110,9 +186,7 @@ async function detectLanguageFromText(text, config) {
   const minScoreFromConfig = Number(config?.translation?.langdetectMinScore);
   const minScore = Number.isFinite(minScoreFromConfig) && minScoreFromConfig >= 0 && minScoreFromConfig <= 1 ? minScoreFromConfig : 0.7;
 
-  const only = Array.isArray(config?.translation?.langdetectOnly) && config.translation.langdetectOnly.length > 0
-    ? config.translation.langdetectOnly
-    : getDefaultFrancOnlyList();
+  const only = getFrancOnlyListFromConfig(config);
 
   const results = francAll(value, { minLength, only });
   if (!Array.isArray(results) || results.length === 0) return 'unknown';
@@ -139,7 +213,7 @@ function readFileHead(filePath, maxBytes) {
 function detectLanguageFromFile(filePath, config) {
   const maxBytesFromConfig = Number(config?.translation?.langdetectMaxBytes);
   const sample = readFileHead(filePath, Number.isFinite(maxBytesFromConfig) && maxBytesFromConfig > 0 ? maxBytesFromConfig : 65536);
-  const cleaned = isMarkdownFile(filePath) ? cleanMarkdownForLangdetect(sample) : sample;
+  const cleaned = isMarkdownFile(filePath) ? cleanMarkdownForLangdetect(sample, config) : sample;
 
   // console.log('[info] cleaned', cleaned)
   return detectLanguageFromText(cleaned, config);
@@ -164,7 +238,7 @@ async function isFileTranslated(filePath, config) {
   }
 
   if (isMarkdownFile(filePath)) {
-    sample = cleanMarkdownForLangdetect(sample);
+    sample = cleanMarkdownForLangdetect(sample, config);
   }
 
   const allowed = getTargetFrancCodes(target);
@@ -174,38 +248,26 @@ async function isFileTranslated(filePath, config) {
   const minLengthFromConfig = Number(config?.translation?.langdetectMinLength);
   const minLength = Number.isFinite(minLengthFromConfig) && minLengthFromConfig > 0 ? minLengthFromConfig : 3;
 
-  const only = Array.isArray(config?.translation?.langdetectOnly) && config.translation.langdetectOnly.length > 0
-    ? config.translation.langdetectOnly
-    : getDefaultFrancOnlyList();
+  const only = getFrancOnlyListFromConfig(config);
 
   const results = francAll(sample, { minLength, only });
   if (!Array.isArray(results) || results.length === 0) return false;
+  // console.log('[info] results', results)
 
-  const best = results[0];
-  const bestScore = typeof best?.[1] === 'number' ? best[1] : 0;
+  const topNFromConfig = Number(config?.translation?.langdetectTopN);
+  const topN = Number.isFinite(topNFromConfig) && topNFromConfig > 0 ? Math.floor(topNFromConfig) : 3;
 
-  let targetScore = 0;
-  for (const [lang, score] of results) {
-    if (allowed.has(String(lang).toLowerCase())) {
-      if (typeof score === 'number' && score > targetScore) targetScore = score;
-    }
+  const minScoreFromConfig = Number(config?.translation?.langdetectTopMinScore);
+  const minScore = Number.isFinite(minScoreFromConfig) && minScoreFromConfig >= 0 && minScoreFromConfig <= 1 ? minScoreFromConfig : 0.9;
+
+  const topResults = results.slice(0, topN);
+  for (const [lang, score] of topResults) {
+    const normalizedLang = String(lang || '').trim().toLowerCase();
+    if (!allowed.has(normalizedLang)) continue;
+    if (typeof score === 'number' && score >= minScore) return true;
   }
 
-  const minTargetScoreFromConfig = Number(config?.translation?.langdetectMinTargetScore);
-  const minTargetScore = Number.isFinite(minTargetScoreFromConfig) && minTargetScoreFromConfig >= 0 && minTargetScoreFromConfig <= 1
-    ? minTargetScoreFromConfig
-    : 0.85;
-
-  const maxDeltaFromConfig = Number(config?.translation?.langdetectMaxDelta);
-  const maxDelta = Number.isFinite(maxDeltaFromConfig) && maxDeltaFromConfig >= 0 && maxDeltaFromConfig <= 1
-    ? maxDeltaFromConfig
-    : 0.12;
-
-  if (targetScore <= 0) return false;
-  if (targetScore < minTargetScore) return false;
-  if (bestScore - targetScore > maxDelta) return false;
-
-  return true;
+  return false;
 }
 
 module.exports = {

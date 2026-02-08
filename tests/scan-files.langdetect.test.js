@@ -8,6 +8,7 @@ import {
   detectLanguageFromText,
   isFileTranslated
 } from '../skills/project-translator/scripts/utils/langdetect.js';
+import { extractAndWriteInnerDictionary } from '../skills/project-translator/scripts/utils/dict/index.js';
 
 const TMP_DIR = join(process.cwd(), 'tmp', 'scan-files-langdetect');
 
@@ -35,18 +36,24 @@ describe('scan-files + langdetect', () => {
       translation: { langdetectOnly: ['cmn', 'zho', 'yue', 'wuu'], langdetectMinLength: 3 }
     });
     const en = await detectLanguageFromText('This is a test document content for language detection.', {
-      translation: { langdetectOnly: ['eng', 'fra'], langdetectMinLength: 3 }
+      translation: { langdetectOnly: ['eng'], langdetectMinLength: 3 }
     });
 
     expect(zh).toMatch(/^(cmn|zho|yue|wuu)$/);
-    expect(en).toMatch(/^(eng|fra)$/);
+    expect(en).toMatch(/^(eng)$/);
   });
 
   it('isFileTranslated should detect files already in target language', async () => {
     const chineseFile = join(TMP_DIR, 'chinese.md');
     const englishFile = join(TMP_DIR, 'english.md');
-    writeFileSync(chineseFile, '这是中文内容。');
-    writeFileSync(englishFile, 'This is English content.');
+    writeFileSync(
+      chineseFile,
+      '这是中文内容，用于测试语言检测是否能够稳定判断为中文。我们再补充一些中文句子，让样本更长、更明确。'
+    );
+    writeFileSync(
+      englishFile,
+      'This is English content for language detection testing. Adding more sentences to make the sample longer and clearer.'
+    );
 
     const config = {
       targetLanguage: '中文',
@@ -66,6 +73,10 @@ describe('scan-files + langdetect', () => {
 
 这是中文内容，用于判断是否已经翻译。这段中文应该主导语言检测。
 
+| Col A | Col B |
+| --- | --- |
+| This is an English row that should be ignored by langdetect. | Another English cell. |
+
 \`\`\`ts
 export function helloWorld() {
   console.log("This is a long English code block that should be ignored by langdetect.");
@@ -79,7 +90,31 @@ export function helloWorld() {
     const config = {
       targetLanguage: '中文',
       fileFilters: { ignoreGitignore: false, supportedExtensions: ['.md'], excludeFiles: [], excludeDirs: [] },
-      translation: { langdetectMinLength: 3, langdetectMinTargetScore: 0.6, langdetectMaxDelta: 0.4 }
+      translation: { langdetectMinLength: 3, langdetectTopN: 3, langdetectTopMinScore: 0.9 }
+    };
+
+    await expect(isFileTranslated(filePath, config)).resolves.toBe(true);
+  });
+
+  it('isFileTranslated should strip dictionary words during markdown cleaning', async () => {
+    const dictPath = join(TMP_DIR, 'inner.json');
+    writeFileSync(dictPath, '{}\n');
+    extractAndWriteInnerDictionary(' React WebSockets Next.js ', { dictPath });
+
+    const filePath = join(TMP_DIR, 'dict-heavy.md');
+    writeFileSync(
+      filePath,
+      `这是中文内容。
+
+React WebSockets Next.js React WebSockets Next.js React WebSockets Next.js React WebSockets Next.js React WebSockets Next.js
+React WebSockets Next.js React WebSockets Next.js React WebSockets Next.js React WebSockets Next.js React WebSockets Next.js
+`
+    );
+
+    const config = {
+      targetLanguage: '中文',
+      fileFilters: { ignoreGitignore: false, supportedExtensions: ['.md'], excludeFiles: [], excludeDirs: [] },
+      translation: { langdetectMinLength: 3, langdetectTopN: 3, langdetectTopMinScore: 0.9, dictPath }
     };
 
     await expect(isFileTranslated(filePath, config)).resolves.toBe(true);
@@ -95,8 +130,14 @@ export function helloWorld() {
     const englishFile = join(docsDir, 'en.md');
     const otherExt = join(docsDir, 'note.txt');
     const taskTrackingFile = join(todoDir, 'project-translation-task.md');
-    writeFileSync(chineseFile, '这是中文内容。');
-    writeFileSync(englishFile, 'This is English content that should be translated.');
+    writeFileSync(
+      chineseFile,
+      '这是中文内容，用于测试 scanProject 是否能标记为已翻译。为了让语言检测更稳定，这里再多写一些中文内容。'
+    );
+    writeFileSync(
+      englishFile,
+      'This is English content that should be translated. Add more English text to make language detection more confident.'
+    );
     writeFileSync(otherExt, 'This file should be ignored by extension.');
     writeFileSync(taskTrackingFile, '# Task list\n\n- [ ] docs/en.md\n');
 

@@ -7,6 +7,7 @@ const validator = require('./validator');
 const file = require('./file');
 const parser = require('./parser');
 const langdetect = require('./langdetect');
+const dict = require('./dict');
 
 module.exports = {
   ...config,
@@ -17,5 +18,6 @@ module.exports = {
   ...validator,
   ...file,
   ...parser,
-  ...langdetect
+  ...langdetect,
+  ...dict
 };
