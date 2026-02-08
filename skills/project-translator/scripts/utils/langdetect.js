@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 
 let francPromise;
 
@@ -67,6 +68,36 @@ function getDefaultFrancOnlyList() {
   ];
 }
 
+function isMarkdownFile(filePath) {
+  const ext = path.extname(String(filePath || '')).toLowerCase();
+  return ext === '.md' || ext === '.mdx' || ext === '.markdown';
+}
+
+function cleanMarkdownForLangdetect(markdown) {
+  let value = String(markdown || '');
+
+  value = value.replace(/^\uFEFF/, '');
+  value = value.replace(/^---[\s\S]*?\n---\s*/m, '');
+  value = value.replace(/```[\s\S]*?```/g, ' ');
+  value = value.replace(/~~~[\s\S]*?~~~/g, ' ');
+  value = value.replace(/\*\*[\s\S]*?\*\*/g, ' ');
+  value = value.replace(/<!--[\s\S]*?-->/g, ' ');
+  value = value.replace(/!\[[^\]]*]\([^)]*\)/g, ' ');
+  value = value.replace(/\[([^\]]+)]\([^)]*\)/g, '$1');
+  value = value.replace(/^\[[^\]]+]:\s*\S+.*$/gm, ' ');
+  value = value.replace(/`[^`]*`/g, ' ');
+  value = value.replace(/<[^>]+>/g, ' ');
+  value = value.replace(/^#{1,6}\s+/gm, '');
+  value = value.replace(/^\s*>\s+/gm, '');
+  value = value.replace(/^\s*[-*+]\s+/gm, '');
+  value = value.replace(/^\s*\d+\.\s+/gm, '');
+  value = value.replace(/https?:\/\/\S+/g, ' ');
+  value = value.replace(/-|\|/g, '');
+  value = value.replace(/\s+/g, ' ').trim();
+
+  return value;
+}
+
 async function detectLanguageFromText(text, config) {
   if (!text) return 'unknown';
   const value = String(text);
@@ -108,7 +139,10 @@ function readFileHead(filePath, maxBytes) {
 function detectLanguageFromFile(filePath, config) {
   const maxBytesFromConfig = Number(config?.translation?.langdetectMaxBytes);
   const sample = readFileHead(filePath, Number.isFinite(maxBytesFromConfig) && maxBytesFromConfig > 0 ? maxBytesFromConfig : 65536);
-  return detectLanguageFromText(sample, config);
+  const cleaned = isMarkdownFile(filePath) ? cleanMarkdownForLangdetect(sample) : sample;
+
+  // console.log('[info] cleaned', cleaned)
+  return detectLanguageFromText(cleaned, config);
 }
 
 function isTranslatableByLanguage(filePath, config) {
@@ -127,6 +161,10 @@ async function isFileTranslated(filePath, config) {
     sample = readFileHead(filePath, maxBytes);
   } catch (error) {
     return false;
+  }
+
+  if (isMarkdownFile(filePath)) {
+    sample = cleanMarkdownForLangdetect(sample);
   }
 
   const allowed = getTargetFrancCodes(target);

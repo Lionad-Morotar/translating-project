@@ -58,6 +58,33 @@ describe('scan-files + langdetect', () => {
     await expect(isFileTranslated(englishFile, config)).resolves.toBe(false);
   });
 
+  it('isFileTranslated should ignore markdown code blocks', async () => {
+    const filePath = join(TMP_DIR, 'mixed.md');
+    writeFileSync(
+      filePath,
+      `# 标题
+
+这是中文内容，用于判断是否已经翻译。这段中文应该主导语言检测。
+
+\`\`\`ts
+export function helloWorld() {
+  console.log("This is a long English code block that should be ignored by langdetect.");
+  return "hello";
+}
+\`\`\`
+
+更多中文内容，继续增强检测结果。`
+    );
+
+    const config = {
+      targetLanguage: '中文',
+      fileFilters: { ignoreGitignore: false, supportedExtensions: ['.md'], excludeFiles: [], excludeDirs: [] },
+      translation: { langdetectMinLength: 3, langdetectMinTargetScore: 0.6, langdetectMaxDelta: 0.4 }
+    };
+
+    await expect(isFileTranslated(filePath, config)).resolves.toBe(true);
+  });
+
   it('scanProject should include all supported files with translated flag', async () => {
     const docsDir = join(TMP_DIR, 'docs');
     mkdirSync(docsDir, { recursive: true });

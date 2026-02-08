@@ -47,6 +47,7 @@ async function scanProject(projectPath, config) {
         if (isSupportedFile(entry.name, config)) {
           const translated = await isFileTranslated(fullPath, config);
           files.push({ path: fullPath, translated });
+          // console.log('[info] file translated:', fullPath, translated)
         }
       }
     }
