@@ -10,7 +10,8 @@
   1.1 使用 `git fetch` 从 origin 和 upstream 拉取更新
   1.2 读取当前 commit 的 git tag，如 “v-<source-commit-id>”，了解当前 commit 是从 upstream 的哪一个 commit 翻译过来的版本
   1.3 如果没有 git tag，默认 `source-commit-id` 为 origin/main 对应的 commit-id
-  1.4 确定远端更新从哪个 commit 到哪个 commit，默认是从 `source-commit-id` 到 upstream/main，如果确定不了则询问用户
+  1.4 默认 `target-commit-id` 为 upstream/main
+  1.5 目前为止确定了更新翻译是从 `source-commit-id` 到 `target-commit-id`
 2. 输出一句话：“正在获取差异”
   2.1 执行指令 `git log <source-commit-id>..upstream/main --reverse --pretty=format:"%h %s"` 获取有差异的 commit，写入差异清单，每行为一个 commit 对应的 markdown 任务。
 3. 循环：
@@ -25,8 +26,10 @@
   3.5 从差异清单删除此行 commit-id
   3.6 根据差异清单剩余行数，输出一句话：“让我继续完美执行剩下的<剩余任务数量>条任务”
   3.7 循环，直到差异清单内容为空
-4. 输出一句话，“差异清单为空，任务结束”
-5. 清理项目
-  5.1 将所有改动提交到 translation 分支，“git commit -am 'chore: translation'”
-  5.2 将 origin/main 快进到 upstream/main
-  5.3 切换会 translation 分支
+4. 输出一句话，“差异清单为空，任务结束”，然后开始清理项目
+  4.1 删除差异清单文件
+  4.2 将所有改动提交到 translation 分支，`git commit -am 'chore: translation'`
+  4.3 在 translation 分支打标，`git tag <target-commit-id（六位数，以便使标签短一些）>`
+  4.4 切换到 main 然后快进到 upstream/main，`git checkout main && git merge upstream/main --ff-only`
+  4.5 切换回 translation 分支，`git checkout translation`
+  4.6 如果用户要求了推送那么推送到远端
