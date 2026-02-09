@@ -1,6 +1,6 @@
 ---
 name: project-translator
-description: 项目翻译，翻译文档和代码文件，支持批量翻译；更新翻译；拉取更新翻译；对齐上游；添加自定义术语表；查找未翻译文件；
+description: project-translator 简称 pt，用于项目翻译，翻译文档和代码文件，支持批量翻译；更新翻译；拉取更新翻译；对齐上游；添加自定义术语表；查找未翻译文件；
 dependency:
   system:
     - npm install
@@ -54,11 +54,15 @@ dependency:
   2.2 如果已翻译文件不在任务清单，则忽略
 3. 主代理读取[术语表](./references/glossary.md)
 4. 循环，根据任务清单，逐个任务
-  4.1 就地翻译文件
+  4.1 优先使用子代理就地翻译文件
   4.2 更新任务清单
   4.3 压缩上下文（忘记所有的翻译内容，压缩时仅保留“完成了xxx的翻译”即可）
   4.3 根据任务清单，输出一句话：“让我继续完美执行剩下的<剩余任务数量>条任务”
   4.4 循环，**直到**任务清单清空
+5. 清理工作
+  5.1 删除任务清单
+  5.2 切换到 `translation` 分支并提交：`git commit -am 'chore: cn translation'`
+  5.3 打标以便记录当前翻译对应哪个远端提交：`git tag "v-$(git rev-parse --short=6 main)"`
 
 **注意事项：**
 

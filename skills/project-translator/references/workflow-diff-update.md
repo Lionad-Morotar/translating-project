@@ -28,7 +28,7 @@
   3.7 循环，直到差异清单内容为空
 4. 输出一句话，“差异清单为空，任务结束”，然后开始清理项目
   4.1 删除差异清单文件
-  4.2 将所有改动提交到 translation 分支，`git commit -am 'chore: translation'`
+  4.2 将所有改动提交到 translation 分支，`git commit -am 'chore: update cn translation'`
   4.3 在 translation 分支打标，`git tag <target-commit-id（六位数，以便使标签短一些）>`
   4.4 切换到 main 然后快进到 upstream/main，`git checkout main && git merge upstream/main --ff-only`
   4.5 切换回 translation 分支，`git checkout translation`
