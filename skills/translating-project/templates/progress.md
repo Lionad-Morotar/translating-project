@@ -1,0 +1,2 @@
+- 总进度：{{translated}}/{{total}}，{{percentage}}%
+- 生成时间：{{timestamp}}

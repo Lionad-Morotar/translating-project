@@ -1,6 +1,6 @@
-# Project Translator
+# Translating Project Skill
 
-Or Codebase Translator，项目翻译 Skill，批量翻译项目文档和代码文件为中文。
+Or Translating Codebase，项目翻译 Skill，批量翻译项目文档和代码文件为中文。
 
 ## 理念
 
@@ -18,13 +18,13 @@ Or Codebase Translator，项目翻译 Skill，批量翻译项目文档和代码�
 ## 安装和使用
 
 ```bash
-npx skill lionad-morotar/project-translator
+npx skill lionad-morotar/translating-project
 ```
 
-为了获得最可靠的结果，请在提示词前加上 `使用 project-translator 技能：`，如：
+如果你的 IDE 不支持 SlashCommand，那么为了获得最可靠的结果，需要提示词前加上前缀，比如：
 
 ```plaintext
-使用 project-translator 技能，<你的提示词>
+使用 translating-project 技能，{你的要求，如“翻译项目”}
 ```
 
 这会明确触发技能并确保 AI 遵循文档化的模式。如果不加前缀，技能触发可能不一致，具体取决于你的提示词与技能描述关键词的匹配程度。
@@ -43,7 +43,7 @@ npx skill lionad-morotar/project-translator
 
 ### 默认配置
 
-项目提供默认配置 `configs/setting.json`，在项目根目录创建 `configs/setting.json` 可覆盖默认配置。
+项目提供默认配置 `configs/setting.json`，也可以项目根目录创建 `configs/setting.json` 可覆盖默认配置。
 
 配置示例：
 
@@ -61,9 +61,7 @@ npx skill lionad-morotar/project-translator
     "priority": ["README.md", "CONTRIBUTING.md", "CHANGELOG.md", "docs/", "src/", "lib/", "app/"],
     "previewLines": 20
   },
-  "experiment": {
-    "translateFromDiff": false
-  }
+
 }
 ```
 
@@ -79,7 +77,6 @@ npx skill lionad-morotar/project-translator
 | `fileFilters.excludeDirs` | 排除的目录 | ["node_modules", "dist", ...] |
 | `translation.priority` | 翻译优先级 | ["README.md", "docs/", ...] |
 | `translation.previewLines` | 预览行数 | 20 |
-| `experiment.translateFromDiff` | 智能差异翻译（实验性） | false |
 
 
 ## 术语表

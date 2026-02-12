@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 
-import { scanProject } from '../skills/project-translator/scripts/scan-files.js';
+import { scanProject } from '../skills/translating-project/tools/scan.js';
 import {
   normalizeTargetLanguage,
   detectLanguageFromText,
   isFileTranslated
-} from '../skills/project-translator/scripts/utils/langdetect.js';
-import { extractAndWriteInnerDictionary } from '../skills/project-translator/scripts/utils/dict/index.js';
+} from '../skills/translating-project/tools/lib/lang.js';
+import { extractAndWriteInnerDictionary } from '../skills/translating-project/tools/lib/dict/index.js';
 
 const TMP_DIR = join(process.cwd(), 'tmp', 'scan-files-langdetect');
 

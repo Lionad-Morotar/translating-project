@@ -1,0 +1,25 @@
+{
+  "name": "translating-project",
+  "version": "1.1.0",
+  "description": "项目翻译助手（tp），批量翻译项目文档和代码文件为中文",
+  "bin": {
+    "tp": "./tools/tp.js"
+  },
+  "scripts": {
+    "scan": "node tools/tp.js scan",
+    "translate": "node tools/tp.js translate",
+    "update": "node tools/tp.js update"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "translation",
+    "i18n",
+    "localization",
+    "claude-skill"
+  ],
+  "dependencies": {
+    "franc": "^6.2.0"
+  }
+}

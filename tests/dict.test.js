@@ -6,7 +6,7 @@ import {
   readInnerDictionary,
   extractAndWriteInnerDictionary,
   extractAndWriteInnerDictionaryFromTempTxt
-} from '../skills/project-translator/scripts/utils/dict/index.js';
+} from '../skills/translating-project/tools/lib/dict/index.js';
 
 const TMP_DIR = join(process.cwd(), 'tmp', 'dict-test');
 

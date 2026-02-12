@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { validateCSV, validateTOML, validateGlossaryFile } from '../skills/project-translator/scripts/utils/validator.js';
+import { validateCSV, validateTOML, validateGlossaryFile } from '../skills/translating-project/tools/lib/valid.js';
 import { writeFileSync, rmSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 

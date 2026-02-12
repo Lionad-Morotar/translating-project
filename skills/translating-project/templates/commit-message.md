@@ -1,0 +1,6 @@
+{{type}}: {{description}}
+
+{{#files}}
+- {{.}}
+{{/files}}
+
