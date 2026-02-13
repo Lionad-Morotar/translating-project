@@ -18,7 +18,7 @@ Or Translating Codebase，项目翻译 Skill，批量翻译项目文档和代码
 ## 安装和使用
 
 ```bash
-npx skill lionad-morotar/translating-project
+npx skills add Lionad-Morotar/translating-project
 ```
 
 如果你的 IDE 不支持 SlashCommand，那么为了获得最可靠的结果，需要提示词前加上前缀，比如：
