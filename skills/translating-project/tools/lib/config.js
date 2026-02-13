@@ -86,6 +86,7 @@ function loadConfig(projectPath) {
 
 /**
  * 深度合并多个对象
+ * 对象递归合并，数组合并去重
  */
 function deepMerge(...objects) {
   const result = {};
@@ -96,8 +97,14 @@ function deepMerge(...objects) {
         // 保留内部属性
         result[key] = obj[key];
       } else if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+        // 递归合并对象
         result[key] = deepMerge(result[key] || {}, obj[key]);
+      } else if (Array.isArray(obj[key])) {
+        // 数组合并（去重）
+        const existing = Array.isArray(result[key]) ? result[key] : [];
+        result[key] = [...new Set([...existing, ...obj[key]])];
       } else {
+        // 基本类型直接覆盖
         result[key] = obj[key];
       }
     }
