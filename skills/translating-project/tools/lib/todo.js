@@ -4,6 +4,50 @@ const { escapeRegExp } = require('./str');
 const { sortByPriority } = require('./priority');
 
 /**
+ * 查找剩余任务（使用 sed 模式）
+ * @param {string} todoPath - 任务清单文件路径
+ * @returns {Array} 剩余待翻译的文件路径列表
+ */
+function findPendingTasks(todoPath) {
+  if (!fs.existsSync(todoPath)) {
+    throw new Error(`任务清单不存在: ${todoPath}`);
+  }
+
+  const content = fs.readFileSync(todoPath, 'utf-8');
+  const lines = content.split('\n');
+
+  const pendingFiles = [];
+  for (const line of lines) {
+    const match = line.match(/^- \[ \] (.+)$/);
+    if (match) {
+      pendingFiles.push(match[1]);
+    }
+  }
+
+  return pendingFiles;
+}
+
+/**
+ * 生成 sed 命令来标记文件为已完成
+ * @param {string} todoPath - 任务清单文件路径
+ * @param {string} filePath - 文件路径
+ * @returns {string} sed 命令
+ */
+function generateSedCompleteCommand(todoPath, filePath) {
+  const escapedPath = filePath.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+  return `sed -i '' 's|^- \\[ \\] ${escapedPath}$|- [x] ${filePath}|' "${todoPath}"`;
+}
+
+/**
+ * 生成 sed 命令来查找剩余任务（用于 grep/sed）
+ * @param {string} todoPath - 任务清单文件路径
+ * @returns {string} sed 命令
+ */
+function generateSedFindPendingCommand(todoPath) {
+  return `sed -n 's/^- \\[ \\] \\(.*\\)$/\\1/p' "${todoPath}"`;
+}
+
+/**
  * 确保存在任务清单文件
  */
 function ensureTodoFileExists(todoPath) {
@@ -128,5 +172,8 @@ module.exports = {
   ensureTodoFileExists,
   writeTodoFile,
   readTodoList,
-  updateTodoStatus
+  updateTodoStatus,
+  findPendingTasks,
+  generateSedCompleteCommand,
+  generateSedFindPendingCommand
 };

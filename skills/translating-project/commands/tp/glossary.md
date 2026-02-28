@@ -2,7 +2,7 @@
 name: tp:glossary
 description: 管理翻译术语表
 argument-hint: "<subcommand> -w <path> [options]"
-allowed-tools: [Read, Write, Bash]
+allowed-tools: [Task, Bash]
 ---
 
 <objective>

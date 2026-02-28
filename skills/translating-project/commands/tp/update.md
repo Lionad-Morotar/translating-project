@@ -2,7 +2,7 @@
 name: tp:update
 description: 同步上游更新并更新翻译
 argument-hint: "<path> [--upstream=upstream/main]"
-allowed-tools: [Read, Write, Task, Bash]
+allowed-tools: [Task, Bash]
 ---
 
 <objective>

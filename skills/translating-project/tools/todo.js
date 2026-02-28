@@ -9,8 +9,12 @@
 const fs = require('fs');
 const path = require('path');
 
+const { findPendingTasks, generateSedFindPendingCommand } = require('./lib/todo');
+
 const SUBCOMMANDS = {
   list,
+  pending,
+  'sed-pending': sedPending,
   update,
   clear,
 };
@@ -45,11 +49,15 @@ function showHelp() {
 
 子命令:
   list                 列出任务清单
+  pending              列出剩余待翻译任务
+  sed-pending          使用 sed 模式列出剩余任务
   update <file>        更新任务状态
   clear                清空任务清单
 
 示例:
   tp todo list
+  tp todo pending
+  tp todo sed-pending
   tp todo update README.md --status=done
   tp todo clear
 `);
@@ -61,14 +69,63 @@ function getTodoPath() {
 
 async function list() {
   const todoPath = getTodoPath();
-  
+
   if (!fs.existsSync(todoPath)) {
     console.log('任务清单不存在');
     return;
   }
-  
+
   const content = fs.readFileSync(todoPath, 'utf8');
   console.log(content);
+}
+
+async function pending() {
+  const todoPath = getTodoPath();
+
+  if (!fs.existsSync(todoPath)) {
+    console.log('任务清单不存在');
+    return;
+  }
+
+  const pendingFiles = findPendingTasks(todoPath);
+
+  if (pendingFiles.length === 0) {
+    console.log('没有待翻译的任务');
+    return;
+  }
+
+  console.log(`剩余 ${pendingFiles.length} 个待翻译任务：`);
+  pendingFiles.forEach((file, index) => {
+    console.log(`${index + 1}. ${file}`);
+  });
+}
+
+async function sedPending() {
+  const todoPath = getTodoPath();
+
+  if (!fs.existsSync(todoPath)) {
+    console.log('任务清单不存在');
+    return;
+  }
+
+  const sedCommand = generateSedFindPendingCommand(todoPath);
+  console.log('使用 sed 模式查找剩余任务：');
+  console.log(`命令: ${sedCommand}`);
+  console.log();
+
+  // 执行 sed 命令
+  const { execSync } = require('child_process');
+  try {
+    const result = execSync(sedCommand, { encoding: 'utf8' });
+    if (result.trim()) {
+      console.log('剩余待翻译任务：');
+      console.log(result);
+    } else {
+      console.log('没有待翻译的任务');
+    }
+  } catch (error) {
+    console.log('执行 sed 命令时出错:', error.message);
+  }
 }
 
 async function update(args) {

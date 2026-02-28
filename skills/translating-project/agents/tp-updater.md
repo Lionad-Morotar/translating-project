@@ -10,7 +10,7 @@ tools: Read, Write, Bash
 
 <upstream_input>
 主代理传入：
-- `project_path`：项目路径（必需）
+- `project_path`：项目绝对路径（必需）
 - `current_tag`：可选，当前已翻译内容对应的 git 标签（如 `v-a1b2c3`）
 - `upstream`：上游分支（可选，默认 `upstream`）
 - `upstream_branch`：上游分支（可选，默认 `upstream/main`）
@@ -62,16 +62,40 @@ git log {source-commit-id}..{upstream_branch} --reverse --pretty=format:"%h %s"
 </step>
 
 <step name="process_commits">
-根据差异清单，逐 commit 处理，对于每个 {commit}：
+根据差异清单，**批量并行处理 commits**：
 
-1. 获取变更统计：`git show {commit-id} --stat`
-2. 获取详细变更：`git show {commit-id}`
-3. 分类处理：
-   - **新增文件**：完整翻译
-   - **删除文件**：同步删除
-   - **少量修改**（< 10 处 diff）：创建 `translator` 子代理，对差异处增量更新
-   - **大量修改**：创建 `translator` 子代理，重新翻译整个文件
-4. 更新差异清单，对完成的 commit 打钩
+1. 获取所有待处理 commits 列表
+2. **每批最多 3 个 commits 并行处理**：
+
+   ```yaml
+   # 使用 Task 工具（`subagent_type: general-purpose`）并行启动 3 个处理代理
+   # Task 1 - 处理 commit 1
+   subagent_type: general-purpose
+   name: commit-processor-1
+   prompt: |
+     你是 Commit 翻译处理器。处理以下 commit：
+
+     **Commit ID**: $COMMIT_ID_1
+     **项目绝对路径**: $PROJECT_PATH
+
+     执行流程：
+     1. 获取变更统计：`git show {commit-id} --stat`
+     2. 获取详细变更：`git show {commit-id}`
+     3. 分类处理：
+        - 新增文件：完整翻译
+        - 删除文件：同步删除
+        - 少量修改（< 10 处 diff）：对差异处增量更新
+        - 大量修改：重新翻译整个文件
+     4. 返回确认信息：处理的文件列表
+
+   # Task 2（同上，name: commit-processor-2，处理 $COMMIT_ID_2）
+   # Task 3（同上，name: commit-processor-3，处理 $COMMIT_ID_3）
+   ```
+
+3. 等待所有子代理完成
+4. 更新差异清单，对本批完成的 commits 打钩
+   - **查找和更新模式**：使用 `sed -i '' 's|\- \[ \] <commit-id>|- [x] <commit-id>|'` 精确匹配
+5. 循环处理下一批，直到所有 commits 完成
 </step>
 
 <step name="cleanup">
