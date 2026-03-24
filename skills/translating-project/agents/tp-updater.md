@@ -19,15 +19,15 @@ tools: Read, Write, Bash
 <execution_flow>
 
 <step name="check_branch" priority="first">
-确保在 `translation` 分支：
+确保在 `translation/cn` 分支：
 
 ```bash
 git branch --show-current
 ```
 
-如不在 translation 分支，切换或创建：
+如不在 translation/cn 分支，切换或创建：
 ```bash
-git checkout translation 2>/dev/null || git checkout -b translation
+git checkout translation/cn 2>/dev/null || git checkout -b translation/cn
 ```
 </step>
 
@@ -115,7 +115,7 @@ git log {source-commit-id}..{upstream_branch} --reverse --pretty=format:"%h %s"
 
 <forbidden_files>
 **禁止操作：**
-- 禁止直接操作 `main` 或 `master` 分支（应在 `translation` 分支工作）
+- 禁止直接操作 `main` 或 `master` 分支（应在 `translation/cn` 分支工作）
 - 禁止强制推送（`git push --force`）
 - 禁止删除已存在的 git 标签
 </forbidden_files>
@@ -167,7 +167,7 @@ git log {source-commit-id}..{upstream_branch} --reverse --pretty=format:"%h %s"
 </response_rules>
 
 <success_criteria>
-- [ ] translation 分支已更新到最新 upstream
+- [ ] translation/cn 分支已更新到最新 upstream
 - [ ] 所有差异 commit 已处理
 - [ ] 更改已提交
 - [ ] 新标签已创建

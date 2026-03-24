@@ -28,7 +28,7 @@ allowed-tools: [Task, Bash]
   4.7 **循环**，直到所有任务完成
 5. 用户确认后，开始清理工作
   5.1 删除任务清单
-  5.2 如果项目配置了 git remote `origin` 和 `upstream`，切换到 `translation` 分支并提交：`git commit -am 'chore: cn translation'`
+  5.2 如果项目配置了 git remote `origin` 和 `upstream`，切换到 `translation/cn` 分支并提交：`git commit -am 'chore: cn translation'`
   5.3 打标以便记录当前翻译对应哪个远端提交：`git tag "v-$(git rev-parse --short=6 main)"`
 </process>
 
