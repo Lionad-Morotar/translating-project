@@ -2,8 +2,8 @@
 name: translating-project
 description: Project Translator Skill - Batch translate project docs and codes，包括管理术语表等功能。
 argument-hint: "<command> [args]"
-disable-model-invocation: false
 user-invocable: true
+disable-model-invocation: true
 allowed-tools: [Bash, Glob, Grep, Task]
 version: 0.2.0
 dependency:
