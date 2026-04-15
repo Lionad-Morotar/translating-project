@@ -20,6 +20,7 @@ dependency:
 - 差异清单：`{待翻译项目根目录}/.todo/tp-diff-task.md`
 - 查找暂存区：指执行指令 `git status --porcelain`
 - 文件路径：永远使用绝对路径
+- 翻译：指就地翻译，而非平行翻译
 
 ## 执行
 
