@@ -37,12 +37,12 @@ allowed-tools: [Task, Bash]
 5. 如果当前已同步的 commit 已经等于 upstream/main HEAD，输出 "已是最新，无需更新" 并结束
 6. 生成待处理的 commit 列表（从当前 tag 之后到 upstream/main HEAD）
    ```bash
-   git log --reverse --format="%H" <current-synced-commit>..upstream/main > /tmp/tp-update-commits.txt
+   git log --reverse --format="%H" <current-synced-commit>..upstream/main > <project_root>/.tasks/tp-update-commits.txt
    ```
 7. 循环，**批量并行处理 commits**
    7.1 从 commit 列表中取出**3 个未处理 commit**作为一批
        ```bash
-       grep -v "^DONE:" /tmp/tp-update-commits.txt | head -3
+       grep -v "^DONE:" <project_root>/.tasks/tp-update-commits.txt | head -3
        ```
    7.2 **使用 Task 工具**（`subagent_type: general-purpose`）启动 1 个 commit-patcher 子代理翻译这三个 commit
    7.3 等待子代理结果
