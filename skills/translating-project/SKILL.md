@@ -32,7 +32,6 @@ dependency:
 | update | 同步上游更新并翻译差异 | 执行[./commands/tp/update.md](./commands/tp/update.md) |
 | glossary | 术语表任务，如添加自定义术语 | 执行[./commands/tp/glossary.md](./commands/tp/glossary.md) |
 | config | 读取项目配置 | 执行[./commands/tp/config.md](./commands/tp/config.md) |
-| help | 显示帮助 | 执行[./commands/tp/help.md](./commands/tp/help.md) |
 
 ## 资源索引
 
