@@ -6,7 +6,7 @@ allowed-tools: [Task, Bash]
 ---
 
 <objective>
-获取上游更新，将从当前 tag 到 upstream head 的所有 commit 逐个 patch 到当前翻译分支，最终提交、打标并同步 origin main。
+获取上游更新，将从当前 tag 到 upstream head 的所有 commit 逐个 patch 的就地翻译到当前分支，最终打标并同步 origin main。
 </objective>
 
 <process>
@@ -26,10 +26,14 @@ allowed-tools: [Task, Bash]
        ```bash
        git describe --tags --match "v-*" --abbrev=0
        ```
-   3.2 获取该 tag 对应的 commit hash
+   3.2 获取该 tag 对应的 commit hash：<current-synced-commit>
        ```bash
        git rev-list -n 1 <tag>
        ```
+   3.3 如何 `v-*` tag 不在 `translation/cn` 的 HEAD，说明某些任务进行到一半：
+      3.3.1 查找 HEAD 的 commit message 能不能匹配到 upstream main 的某个 commit message
+      3.3.2 可以匹配则 <current-synced-commit> 为当前 commit hash
+      3.3.3 如果匹配不上则 <current-synced-commit> 设置为最新 v-* 所在 commit hash
 4. 获取 upstream/main 的 HEAD hash
    ```bash
    git rev-parse upstream/main
@@ -39,17 +43,18 @@ allowed-tools: [Task, Bash]
    ```bash
    git log --reverse --format="%H" <current-synced-commit>..upstream/main > <project_root>/.tasks/tp-update-commits.txt
    ```
-7. 循环，**批量并行处理 commits**
+7. 循环
    7.1 从 commit 列表中取出**3 个未处理 commit**作为一批
        ```bash
        grep -v "^DONE:" <project_root>/.tasks/tp-update-commits.txt | head -3
        ```
-   7.2 **使用 Task 工具**（`subagent_type: general-purpose`）启动 1 个 commit-patcher 子代理翻译这三个 commit
+   7.2 创建 1 个子代理翻译这三个 commit
    7.3 等待子代理结果
    7.4 输出一句话："已完成第 {N} 批 commit 同步（{本批数量} 个），预计还剩 {剩余数量} 个"
    7.5 禁止检测 patch 质量，禁止等待用户确认或提交
-   7.6 **循环**，直到所有 commit 处理完成
-8. 所有 commit patch 完毕后，提交更改
+   7.6 commit 到 `translation/cn` 分支，使用和原 commit 相同的提交信息
+   7.7 **循环**，直到所有 commit 处理完成
+8. 所有 commit patch 完毕后，应当没有未提交文件，如有则：
    ```bash
    git add -A && git commit -m "sync: upstream updates"
    ```
@@ -71,48 +76,18 @@ name: commit-patcher
 allowed-tools: Read, Write, Bash
 prompt: |
   你是一个翻译项目的 commit 同步专家。你的任务是将上游 commit 的变更语义化地应用到已翻译的文档上。
-
   输入参数（由调用方注入）：
-  - commits: "<commit-hash-1> <commit-hash-2> <commit-hash-3>"
-
+  - commits: "<commit-hash-1> <commit-hash-2> <commit-hash-3> ..."
   执行步骤：
-  1. 逐个处理这 3 个 commit
+  1. 逐个处理 commits
      1.1 读取 commit diff：`git show --stat <commit>` 和 `git show <commit>`
      1.2 分析 diff，列出每个 commit 涉及的所有文件及其操作类型（新增 / 修改 / 删除 / 重命名）
-
-  2. 对于 diff 中的每一个文件，按以下规则处理：
-     - **推断已翻译文件路径**：根据项目常见翻译文件命名规则，推断该文件对应的中文翻译文件路径。常见模式包括：
-       - `foo.md` -> `foo-cn.md`、`foo.zh.md`、`foo.zh-CN.md`、`zh-CN/foo.md`、`docs/zh/foo.md` 等
-       - 如果项目内有明确的翻译文件目录结构，优先遵循该结构
-       - 如果不确定，使用 Bash 搜索可能的翻译文件：`fd <basename>` 或 `find . -name "*<basename>*"`
-
-     - **新增文件**：
-       - 读取上游新文件完整内容
-       - 将内容全文翻译为中文
-       - 在对应的翻译文件路径创建新文件（使用 Write 工具）
-
-     - **删除文件**：
-       - 找到对应的已翻译文件，如果存在则删除（使用 Bash：`rm <translated-file>`）
-
-     - **修改文件**：
-       - 读取上游文件的最新版本（`git show upstream/main:<file>` 或 `git show <commit>:<file>`）
-       - 读取当前已翻译文件的内容
-       - 分析 diff 的语义：理解上游做了哪些内容变更（段落增删、结构调整、链接更新、代码示例修改等）
-       - 将相同的语义变更应用到已翻译文档中：
-         * 上游新增的段落 -> 在翻译文档对应位置新增中文翻译
-         * 上游删除的段落 -> 在翻译文档对应位置删除
-         * 上游修改的表述 -> 在翻译文档对应位置修改中文表述（保持翻译风格一致）
-         * 上游仅修改代码示例 / 链接 / 格式 -> 在翻译文档中同步相同的技术修改
-       - 使用 Write 工具写回修改后的翻译文件
-
-     - **重命名文件**：
-       - 视为「删除旧路径 + 新增新路径」的组合操作
-       - 如果旧路径有翻译文件，则删除旧翻译文件
-       - 为新路径创建翻译文件（参照新增文件逻辑）
-
-  3. 处理过程中不要执行任何 git 提交、不要创建 commit、不要运行 `git cherry-pick`。
-  4. 如果某个 commit 的文件完全无法推断翻译路径，或语义化 patch 失败，记录失败的 commit 和文件，继续处理下一个。
-  5. 全部处理完毕后，输出一个简洁的汇总：成功处理的 commit 数、失败的项（如有）。
+      - 新增：新增并翻译为中文（代码文件则翻译注释）
+      - 删除：删除对应文件
+      - 修改**：读取差异，分析然后应用并翻译到已有文档
+     1.3 按照原 commit message （commit message 无需翻译）提交到 `translation/cn` 分支
+  3. 禁止 `git cherry-pick`
+  4. 全部 commits 处理完，输出一个简洁的汇总：成功处理的 commit 数、失败的项（如有）。
 ```
 </the_subagents>
 

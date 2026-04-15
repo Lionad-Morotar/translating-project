@@ -34,6 +34,8 @@ dependency:
 | glossary | 术语表任务，如添加自定义术语 | 执行[./commands/tp/glossary.md](./commands/tp/glossary.md) |
 | config | 读取项目配置 | 执行[./commands/tp/config.md](./commands/tp/config.md) |
 
+**不要耍小心思，完全忠于技能完成任务**
+
 ## 资源索引
 
 | 资源类型 | 路径 |
