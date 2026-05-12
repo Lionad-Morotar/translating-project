@@ -19,7 +19,7 @@ allowed-tools: [Task, Bash]
 4. 循环，根据任务清单，**批量并行翻译**
   4.1 从任务清单中取出**3个未完成任务**作为一批
       ```bash
-      node ~/.claude/skills/translating-project/tools/tp.js todo pending -w /Users/lionad/Github/LLM/pm-skills-cn | head -3
+      node ~/.claude/skills/translating-project/tools/tp.js todo pending -w ~/Github/LLM/pm-skills-cn | head -3
       ```
   4.2 **使用 Task 工具**（`subagent_type: general-purpose`）并行启动 3 个翻译子代理
   4.3 等待子代理结果
